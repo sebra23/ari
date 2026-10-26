@@ -16,6 +16,7 @@ const AVATARS = ["column", "sprout", "beacon", "drift", "ledger", "moss", "quill
 export default function Wizard({ email, name, provider }: { email: string; name: string; provider: string }) {
   const [step, setStep] = useState(0);
   const [routines, setRoutines] = useState<Record<string, boolean>>({});
+  const [autoInboxOpts, setAutoInboxOpts] = useState({ label: true, archive: false, draft: true, scheduling: true });
   const [assistant, setAssistant] = useState({ name: "", personality: "Minimal, high-signal, and brief.", avatar: "column", voice: "Sage" });
   const [sched, setSched] = useState({ workingHours: "Weekdays · 9:00 AM – 5:00 PM", distribution: "Consolidate onto busier days", recurring: "None" });
   const [q, setQ] = useState("");
@@ -24,7 +25,8 @@ export default function Wizard({ email, name, provider }: { email: string; name:
 
   async function finish() {
     await fetch("/api/onboarding", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ routines, assistant, preferences: { scheduling: sched } }) });
+      body: JSON.stringify({ routines, assistant, preferences: { scheduling: sched },
+        routineConfig: { "auto-inbox": autoInboxOpts } }) });
     router.push("/chat");
   }
 
@@ -62,6 +64,14 @@ export default function Wizard({ email, name, provider }: { email: string; name:
           <input type="checkbox" className="h-5 w-9 accent-neutral-900" checked={!!routines[r.key]}
             onChange={e => setRoutines({ ...routines, [r.key]: e.target.checked })} />
         </label>)}
+        {routines["auto-inbox"] && <div className="ml-4 space-y-2 rounded-xl border bg-white p-4 text-sm">
+          {([["Label new mail", "label"], ["Archive unimportant emails", "archive"],
+             ["Draft replies to important emails", "draft"], ["Assist with scheduling", "scheduling"]] as const).map(([label, k]) =>
+            <label key={k} className="flex items-center gap-2 text-neutral-600">
+              <input type="checkbox" className="accent-neutral-900" checked={autoInboxOpts[k as keyof typeof autoInboxOpts]}
+                onChange={e => setAutoInboxOpts({ ...autoInboxOpts, [k]: e.target.checked })} /> {label}
+            </label>)}
+        </div>}
       </div>}
 
       {step === 2 && <>
@@ -113,6 +123,13 @@ export default function Wizard({ email, name, provider }: { email: string; name:
       </div>}
 
       {step === 5 && <div className="mt-6 space-y-4">
+        {assistant.name && <div className="rounded-2xl border bg-white p-6 text-center">
+          <div className="mx-auto grid h-20 w-20 place-items-center rounded-2xl bg-neutral-900 text-2xl font-semibold text-white">
+            {assistant.name[0].toUpperCase()}
+          </div>
+          <div className="mt-3 text-2xl font-semibold">{assistant.name}</div>
+          <div className="text-sm text-neutral-500">Created for {email} · {assistant.personality.split(",")[0]}</div>
+        </div>}
         <div>
           <div className="mb-2 text-sm font-medium">Avatar</div>
           <div className="grid grid-cols-8 gap-2">

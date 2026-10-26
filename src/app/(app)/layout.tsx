@@ -4,10 +4,12 @@ import Link from "next/link";
 import { authOptions } from "@/lib/auth/options";
 import { prisma } from "@/lib/db";
 import AccountMenu from "@/components/account-menu";
+import Search from "@/components/search";
 
 const NAV = [
   ["Chat", "/chat"], ["For you", "/for-you"], ["Powers", "/powers/routines"],
-  ["Explore", "/explore"], ["Wiki", "/wiki"], ["Library", "/library"], ["Pricing", "/pricing"],
+  ["Explore", "/explore"], ["Wiki", "/wiki"], ["Library", "/library"],
+  ["Teams", "/teams"], ["Shared with me", "/shared"], ["Referrals", "/referrals"], ["Pricing", "/pricing"],
 ];
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -22,6 +24,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="mb-3 font-semibold">Ari</div>
         {NAV.map(([label, href]) => <Link key={href} href={href}
           className="rounded-lg px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-100">{label}</Link>)}
+        <Search />
         <div className="mt-auto">
           <AccountMenu email={user?.email ?? ""} plan={user?.plan ?? "free"}
                        credits={user?.creditsBalance ?? 0}
