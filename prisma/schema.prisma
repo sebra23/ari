@@ -17,6 +17,7 @@ model User {
   plan           String     @default("free")
   creditsBalance Int        @default(5000) // trial credits
   trialEndsAt    DateTime?
+  preferences    Json? // scheduling prefs, theme, channels
   accounts       Account[]
   sessions       Session[]
   assistant      Assistant?
@@ -26,6 +27,18 @@ model User {
   people         Person[]
   notes          Note[]
   docs           Doc[]
+  logs           AppLog[]
+}
+
+model AppLog {
+  id        String   @id @default(cuid())
+  userId    String
+  source    String // routine | chat | inbound | system
+  message   String   @db.Text
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 
 model Account {
