@@ -16,6 +16,9 @@ export async function GET(req: Request) {
   const token = await encode({ token: { sub: demo.id, email: demo.email, name: demo.name },
     secret: process.env.NEXTAUTH_SECRET!, maxAge: 30 * 24 * 3600 });
   const res = NextResponse.redirect(new URL("/chat", req.url));
-  res.cookies.set("next-auth.session-token", token, { httpOnly: true, sameSite: "lax", path: "/" });
+  // NextAuth uses the __Secure- prefixed cookie on https/production
+  const secure = new URL(req.url).protocol === "https:";
+  const name = secure ? "__Secure-next-auth.session-token" : "next-auth.session-token";
+  res.cookies.set(name, token, { httpOnly: true, sameSite: "lax", path: "/", secure });
   return res;
 }
