@@ -1,29 +1,49 @@
 import NextAuth from "next-auth";
 import { authOptions } from "@/lib/auth/options";
+import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/db";
 
-// Diagnostic: capture NextAuth errors into AppLog so they can be read without
-// platform log access. Remove after the OAuth issue is resolved.
-async function capture(code: string, metadata: any) {
+// --- Diagnostic layer (temporary): capture auth errors into AppLog ---
+async function capture(context: string, err: any) {
   try {
     const sys = await prisma.user.upsert({
       where: { email: "auth-log@ari.local" },
       update: {},
       create: { email: "auth-log@ari.local", name: "AuthLog", onboardingDone: true },
     });
-    const err = metadata?.error ?? metadata;
-    const detail = (err?.stack ?? err?.message ?? JSON.stringify(metadata) ?? String(metadata)) as string;
+    const detail =
+      (err?.stack as string | undefined) ??
+      JSON.stringify({ message: err?.message, code: err?.code, meta: err?.meta, name: err?.name });
     await prisma.appLog.create({
-      data: { userId: sys.id, source: "system", message: `[auth] ${code}: ${detail}`.slice(0, 900) },
+      data: { userId: sys.id, source: "system", message: `[auth] ${context}: ${detail}`.slice(0, 1900) },
     });
   } catch { /* diagnostics must never break auth */ }
 }
 
+// Wrap every adapter method: any exception is captured with full Prisma metadata,
+// then re-thrown so NextAuth's flow behaves identically.
+const baseAdapter = PrismaAdapter(prisma) as Record<string, any>;
+const instrumentedAdapter = new Proxy(baseAdapter, {
+  get(target, prop) {
+    const value = target[prop as string];
+    if (typeof value !== "function") return value;
+    return async (...args: any[]) => {
+      try {
+        return await (value as Function).apply(target, args);
+      } catch (e) {
+        await capture(`adapter.${String(prop)}`, e);
+        throw e;
+      }
+    };
+  },
+});
+
 const handler = NextAuth({
   ...authOptions,
+  adapter: instrumentedAdapter as any,
   logger: {
-    error: (code, metadata) => { console.error(code, metadata); void capture(code, metadata); },
-    warn: (code) => { console.warn(code); void capture(`warn:${code}`, null); },
+    error: (code, metadata) => { console.error(code, metadata); void capture(String(code), metadata); },
+    warn: (code) => { console.warn(code); },
   },
 });
 
