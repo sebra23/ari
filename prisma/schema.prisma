@@ -10,6 +10,7 @@ datasource db {
 model User {
   id             String     @id @default(cuid())
   email          String     @unique
+  emailVerified  DateTime? // required by NextAuth PrismaAdapter
   name           String?
   image          String?
   timezone       String     @default("Europe/Zurich")
@@ -50,7 +51,10 @@ model Account {
   access_token      String? @db.Text
   refresh_token     String? @db.Text
   expires_at        Int?
+  token_type        String?
   scope             String?
+  id_token          String? @db.Text
+  session_state     String?
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
@@ -136,7 +140,7 @@ model Note {
   id      String @id @default(cuid())
   userId  String
   content String @db.Text
-  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Doc {
