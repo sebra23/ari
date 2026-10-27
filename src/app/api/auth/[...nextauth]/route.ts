@@ -17,6 +17,13 @@ async function capture(context: string, err: any) {
     await prisma.appLog.create({
       data: { userId: sys.id, source: "system", message: `[auth] ${context}: ${detail}`.slice(0, 1900) },
     });
+    // Second row: the REASON lives at the tail of Prisma validation messages
+    if (typeof err?.message === "string" && err.message.length > 400) {
+      await prisma.appLog.create({
+        data: { userId: sys.id, source: "system",
+          message: `[auth-reason] ${context}: ${err.message.slice(-800)}` },
+      });
+    }
   } catch { /* diagnostics must never break auth */ }
 }
 
