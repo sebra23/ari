@@ -23,7 +23,7 @@ const handler = NextAuth({
   ...authOptions,
   logger: {
     error: (code, metadata) => { console.error(code, metadata); void capture(code, metadata); },
-    warn: (code, metadata) => { console.warn(code, metadata); void capture(`warn:${code}`, metadata); },
+    warn: (code) => { console.warn(code); void capture(`warn:${code}`, null); },
   },
 });
 
