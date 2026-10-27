@@ -36,6 +36,12 @@ const instrumentedAdapter = new Proxy(baseAdapter, {
     if (typeof value !== "function") return value;
     return async (...args: any[]) => {
       try {
+        // createUser dedupe: return the existing same-email user instead of
+        // violating the unique constraint (prevents orphan rows on retries).
+        if (prop === "createUser" && args[0]?.email) {
+          const existing = await prisma.user.findUnique({ where: { email: args[0].email } });
+          if (existing) return existing;
+        }
         return await (value as Function).apply(target, args);
       } catch (e) {
         await capture(`adapter.${String(prop)}`, e);
